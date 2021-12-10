@@ -1,12 +1,5 @@
 import { readFile } from "fs/promises";
 
-function calculateLinearCost(positions, proposedLocation) {
-  return positions.reduce(
-    (prev, curr) => prev + Math.abs(curr - proposedLocation),
-    0
-  );
-}
-
 function partOne(entries) {
   const easyNumbersOutputs = entries
     .map((e) => e.outputs.map((o) => segmentLengthToNumber(o.length)))
