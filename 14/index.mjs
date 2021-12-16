@@ -24,28 +24,39 @@ function getCharCounts(polymerTemplate) {
   return counts;
 }
 
-function partOne(polymerTemplate, rules) {
+function partOne(polymerTemplate, rules, depth) {
   let nextPolymerTemplateLetters = polymerTemplate.split("");
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < depth; i++) {
     nextPolymerTemplateLetters = process(nextPolymerTemplateLetters, rules);
   }
-  console.log("total letters", nextPolymerTemplateLetters.length);
-  const charCounts = getCharCounts(nextPolymerTemplateLetters);
-  console.log(JSON.stringify(charCounts));
-  const max = Math.max(...Object.values(charCounts));
-  const min = Math.min(...Object.values(charCounts));
+
+  const counts = getCharCounts(nextPolymerTemplateLetters);
+  console.log(JSON.stringify(counts));
+  const max = Math.max(...Object.values(counts));
+  const min = Math.min(...Object.values(counts));
   console.log(max - min);
+  console.log("----");
 }
 
-function splitTemplates(polymerTemplateLetters) {
-  const templates = [];
-  let middle = polymerTemplateLetters.length / 2;
-  if (polymerTemplateLetters.length % 2 == 1) {
-    middle = (polymerTemplateLetters.length - 1) / 2;
+function mergeCounts(countsA, countsB, countsC = {}) {
+  const counts = { ...countsA };
+  for (const [key, value] of Object.entries(countsB)) {
+    if (!counts[key]) {
+      counts[key] = value;
+    } else {
+      counts[key] += value;
+    }
   }
-  templates.push(polymerTemplateLetters.slice(0, middle));
-  templates.push(polymerTemplateLetters.slice(middle));
-  return templates;
+
+  for (const [key, value] of Object.entries(countsC)) {
+    if (!counts[key]) {
+      counts[key] = value;
+    } else {
+      counts[key] += value;
+    }
+  }
+
+  return counts;
 }
 
 function incrementCount(counts, c) {
@@ -53,6 +64,25 @@ function incrementCount(counts, c) {
     counts[c] = 0;
   }
   counts[c]++;
+}
+
+function processPair(leftChar, rightChar, remainingSteps, rules) {
+  const pair = `${leftChar}${rightChar}`;
+  const newChar = rules[pair];
+  let counts = {
+    [newChar]: 1,
+  };
+  if (remainingSteps == 0) {
+    return counts;
+  }
+  const nextSteps = remainingSteps - 1;
+  const totalCounts = mergeCounts(
+    counts,
+    processPair(leftChar, newChar, nextSteps, rules),
+    processPair(newChar, rightChar, nextSteps, rules)
+  );
+
+  return totalCounts;
 }
 
 function processToAdditionalTemplates(
@@ -87,42 +117,22 @@ function processToAdditionalTemplates(
   }
 }
 
-function partTwoFailSameHeap(polymerTemplate, rules) {
-  let nextPolymerTemplateLetters = polymerTemplate.split("");
-
-  let templates = splitTemplates(nextPolymerTemplateLetters);
-  for (let i = 0; i < 40; i++) {
-    console.log(i, templates.length);
-    let nextTemplates = [];
-    for (let j = 0; j < templates.length; j++) {
-      if (j > 0) {
-        const connectingChars = [templates[j - 1][templates[j - 1].length - 1]];
-        connectingChars.push(templates[j][0]);
-        const result = process(connectingChars, rules);
-        if (result.length == 3) {
-          nextTemplates[nextTemplates.length - 1].push(result[1]);
-        }
-      }
-      const processed = process(templates[j], rules);
-      if (processed.length > 2500) {
-        nextTemplates = nextTemplates.concat(splitTemplates(processed));
-      } else {
-        nextTemplates.push(processed);
-      }
-    }
-    templates = nextTemplates;
-  }
-  const charCounts = getCharCounts(nextPolymerTemplateLetters);
-  const max = Math.max(...Object.values(charCounts));
-  const min = Math.min(...Object.values(charCounts));
-  console.log(max - min);
-}
-
-function partTwo(polymerTemplate, rules) {
+function partTwo(polymerTemplate, rules, depth) {
   let counts = {};
   let nextPolymerTemplateLetters = polymerTemplate.split("");
   nextPolymerTemplateLetters.forEach((c) => incrementCount(counts, c));
-  processToAdditionalTemplates(nextPolymerTemplateLetters, rules, counts, 40);
+  for (let i = 1; i < nextPolymerTemplateLetters.length; i++) {
+    const processed = processPair(
+      nextPolymerTemplateLetters[i - 1],
+      nextPolymerTemplateLetters[i],
+      depth - 1,
+      rules
+    );
+    counts = mergeCounts(counts, processed);
+  }
+  console.log(JSON.stringify(counts));
+  //
+  // processToAdditionalTemplates(nextPolymerTemplateLetters, rules, counts, 40);
   const max = Math.max(...Object.values(counts));
   const min = Math.min(...Object.values(counts));
   console.log(max - min);
@@ -138,8 +148,10 @@ async function main() {
     return prev;
   }, {});
 
-  partOne(polymerTemplate, rules);
-  partTwo(polymerTemplate, rules);
+  const depth = 20;
+
+  partOne(polymerTemplate, rules, depth);
+  partTwo(polymerTemplate, rules, depth);
 }
 
 main().then(
