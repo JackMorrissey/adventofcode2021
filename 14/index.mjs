@@ -66,7 +66,7 @@ function incrementCount(counts, c) {
   counts[c]++;
 }
 
-function processPair(leftChar, rightChar, remainingSteps, rules) {
+function processPair(leftChar, rightChar, remainingSteps, rules, countCache) {
   const pair = `${leftChar}${rightChar}`;
   const newChar = rules[pair];
   let counts = {
@@ -76,63 +76,51 @@ function processPair(leftChar, rightChar, remainingSteps, rules) {
     return counts;
   }
   const nextSteps = remainingSteps - 1;
+  const cacheKey = `${pair}.${nextSteps}`;
+  if (countCache[cacheKey]) {
+    return countCache[cacheKey];
+  }
+
   const totalCounts = mergeCounts(
     counts,
-    processPair(leftChar, newChar, nextSteps, rules),
-    processPair(newChar, rightChar, nextSteps, rules)
+    processPair(leftChar, newChar, nextSteps, rules, countCache),
+    processPair(newChar, rightChar, nextSteps, rules, countCache)
   );
+
+  if (nextSteps > 5) {
+    countCache[cacheKey] = totalCounts;
+  }
 
   return totalCounts;
 }
 
-function processToAdditionalTemplates(
-  letters,
-  rules,
-  counts = {},
-  remainingSteps = 40
-) {
-  if (remainingSteps == 0) {
-    return;
-  }
-  for (let i = 0; i < letters.length; i++) {
-    if (i < letters.length - 1) {
-      const pairRight = `${letters[i]}${letters[i + 1]}`;
-      processToAdditionalTemplates(
-        [letters[i], rules[pairRight]],
-        rules,
-        counts,
-        remainingSteps - 1
-      );
-    }
-    if (i > 0) {
-      const pairLeft = `${letters[i - 1]}${letters[i]}`;
-      incrementCount(counts, rules[pairLeft]);
-      processToAdditionalTemplates(
-        [rules[pairLeft], letters[i]],
-        rules,
-        counts,
-        remainingSteps - 1
-      );
-    }
-  }
+function time(start) {
+  let end = new Date();
+  let timeDiff = end - start; //in ms
+  timeDiff /= 1000;
+  let seconds = Math.round(timeDiff);
+  console.log(seconds + " seconds");
 }
 
 function partTwo(polymerTemplate, rules, depth) {
   let counts = {};
+  let countCache = {};
   let nextPolymerTemplateLetters = polymerTemplate.split("");
   nextPolymerTemplateLetters.forEach((c) => incrementCount(counts, c));
+  const start = new Date();
   for (let i = 1; i < nextPolymerTemplateLetters.length; i++) {
+    console.log(`Top ${i}/${nextPolymerTemplateLetters.length}`);
     const processed = processPair(
       nextPolymerTemplateLetters[i - 1],
       nextPolymerTemplateLetters[i],
       depth - 1,
-      rules
+      rules,
+      countCache
     );
     counts = mergeCounts(counts, processed);
   }
+  time(start);
   console.log(JSON.stringify(counts));
-  //
-  // processToAdditionalTemplates(nextPolymerTemplateLetters, rules, counts, 40);
   const max = Math.max(...Object.values(counts));
   const min = Math.min(...Object.values(counts));
   console.log(max - min);
@@ -148,9 +136,9 @@ async function main() {
     return prev;
   }, {});
 
-  const depth = 20;
+  const depth = 40;
 
-  partOne(polymerTemplate, rules, depth);
+  // partOne(polymerTemplate, rules, depth);
   partTwo(polymerTemplate, rules, depth);
 }
 
