@@ -1,4 +1,4 @@
-import { readFile } from "fs/promises";
+import { readFile } from 'fs/promises';
 
 const failedPath = Number.MAX_SAFE_INTEGER;
 
@@ -16,25 +16,43 @@ function getSimplePathRisk(numberLines) {
 
 function getValidPositions(atRowI, atColJ, positions, visitedPositions) {
   const validPositions = [];
-  const up = {
-    i: atRowI - 1,
-    j: atColJ,
-  };
-  const down = {
-    i: atRowI + 1,
-    j: atColJ,
-  };
+
+  if (atRowI < positions.length - 1 && !visitedPositions.has(`${atRowI + 1}-${atColJ}`)) {
+    validPositions.push({
+      i: atRowI + 1,
+      j: atColJ,
+    });
+  }
+  if (atColJ < positions[0].length - 1 && !visitedPositions.has(`${atRowI}-${atColJ + 1}`)) {
+    validPositions.push({
+      i: atRowI,
+      j: atColJ + 1,
+    });
+  }
+  if (atColJ > 1 && !visitedPositions.has(`${atRowI}-${atColJ - 1}`)) {
+    validPositions.push({
+      i: atRowI,
+      j: atColJ - 1,
+    });
+  }
+  if (atRowI > 1 && !visitedPositions.has(`${atRowI - 1}-${atColJ}`)) {
+    validPositions.push({
+      i: atRowI - 1,
+      j: atColJ,
+    });
+  }
+  return validPositions;
 }
 
 function traverseForRisk(
-  atI,
-  atJ,
+  atRowI,
+  atColJ,
   positions,
   visitedPositions,
   currentRisk,
-  toBeatRisk
+  toBeatRisk,
 ) {
-  if (atI === positions.length - 1 && atJ === positions[0].length - 1) {
+  if (atRowI === positions.length - 1 && atColJ === positions[0].length - 1) {
     return currentRisk;
   }
 
@@ -42,55 +60,66 @@ function traverseForRisk(
     return failedPath;
   }
 
-  // get valid paths
+  const validPaths = getValidPositions(atRowI, atColJ, positions, visitedPositions);
+  if (!validPaths.length) {
+    return failedPath;
+  }
+
+  let currentBestRisk = toBeatRisk;
+  validPaths.forEach((p) => {
+    const nextVisited = new Set(visitedPositions);
+    nextVisited.add(`${p.i}-${p.j}`);
+    const nextRisk = currentRisk + positions[p.i][p.j];
+    const resultingRisk = traverseForRisk(p.i, p.j, positions, nextVisited, nextRisk, currentBestRisk);
+    if (resultingRisk < currentBestRisk) {
+      currentBestRisk = resultingRisk;
+    }
+  });
+  return currentBestRisk;
 }
 
-function partOne(numberLines) {
-  const simpleRisk = getSimplePathRisk(numberLines);
-  console.log(JSON.stringify(numberLines));
-}
+function partOne(positions) {
+  const simpleRisk = getSimplePathRisk(positions);
+  const lowestRisk = traverseForRisk(0, 0, positions, new Set(['0-0']), 0, simpleRisk);
+  console.log(lowestRisk);
+};
 
 function partTwo(polymerTemplate, rules, depth) {
-  const start = new Date();
 
-  time(start);
-  console.log(JSON.stringify(counts));
-  const max = Math.max(...Object.values(counts));
-  const min = Math.min(...Object.values(counts));
-  console.log(max - min);
 }
 
 function getSampleLines() {
   return [
-    "1163751742",
-    "1381373672",
-    "2136511328",
-    "3694931569",
-    "7463417111",
-    "1319128137",
-    "1359912421",
-    "3125421639",
-    "1293138521",
-    "2311944581",
+    '1163751742',
+    '1381373672',
+    '2136511328',
+    '3694931569',
+    '7463417111',
+    '1319128137',
+    '1359912421',
+    '3125421639',
+    '1293138521',
+    '2311944581',
   ];
 }
 
 async function main() {
-  const contents = await readFile("input.txt", "utf8");
-  const lines = contents.split("\n");
-  const numberLines = getSampleLines() // lines
+  const contents = await readFile('input.txt', 'utf8');
+  const lines = contents.split('\n');
+  const numberLines = lines
+  // const numberLines = getSampleLines()
     .filter((l) => !!l)
-    .map((l) => l.split("").map((c) => parseInt(c, 10)));
+    .map((l) => l.split('').map((c) => parseInt(c, 10)));
   partOne(numberLines);
-  //partTwo(numberLines);
+  // partTwo(numberLines);
 }
 
 main().then(
   () => {
-    console.log("Done!");
+    console.log('Done!');
   },
   (e) => {
     console.error(e);
     console.error(e.stack);
-  }
+  },
 );
