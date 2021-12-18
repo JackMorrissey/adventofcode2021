@@ -14,101 +14,80 @@ function getSimplePathRisk(numberLines) {
   return risk;
 }
 
-function getValidPositions(atRowI, atColJ, positions, visitedPositions) {
+function getValidPositions(point, positions) {
   const validPositions = [];
-
-  if (
-    atRowI < positions.length - 1 &&
-    !visitedPositions.has(`${atRowI + 1}-${atColJ}`)
-  ) {
-    validPositions.push({
-      i: atRowI + 1,
-      j: atColJ,
-    });
-  }
-  if (
-    atColJ < positions[0].length - 1 &&
-    !visitedPositions.has(`${atRowI}-${atColJ + 1}`)
-  ) {
-    validPositions.push({
-      i: atRowI,
-      j: atColJ + 1,
-    });
-  }
-  // if (atColJ > 1 && !visitedPositions.has(`${atRowI}-${atColJ - 1}`)) {
+  const atRowI = point.i;
+  const atColJ = point.j;
+  // const rightKey = `${atRowI + 1}-${atColJ}`;
+  // if (atRowI < positions.length - 1) {
+  //   validPositions.push({
+  //     i: atRowI + 1,
+  //     j: atColJ,
+  //     key: rightKey,
+  //   });
+  // }
+  // const downKey = `${atRowI}-${atColJ + 1}`;
+  // if (atColJ < positions[0].length - 1) {
   //   validPositions.push({
   //     i: atRowI,
-  //     j: atColJ - 1,
+  //     j: atColJ + 1,
+  //     key: downKey,
   //   });
   // }
-  // if (atRowI > 1 && !visitedPositions.has(`${atRowI - 1}-${atColJ}`)) {
-  //   validPositions.push({
-  //     i: atRowI - 1,
-  //     j: atColJ,
-  //   });
-  // }
+  const upKey = `${atRowI}-${atColJ - 1}`;
+  if (atColJ > 0) {
+    validPositions.push({
+      i: atRowI,
+      j: atColJ - 1,
+      key: upKey,
+    });
+  }
+  const leftKey = `${atRowI - 1}-${atColJ}`;
+  if (atRowI > 0) {
+    validPositions.push({
+      i: atRowI - 1,
+      j: atColJ,
+      key: leftKey,
+    });
+  }
   return validPositions;
 }
 
-function traverseForRisk(
-  atRowI,
-  atColJ,
-  positions,
-  visitedPositions,
-  currentRisk,
-  toBeatRisk
-) {
-  if (atRowI === positions.length - 1 && atColJ === positions[0].length - 1) {
-    return currentRisk;
+function traverseForRisk(point, positions, shortestPathByPosition) {
+  if (point.i === 0 && point.j === 0) {
+    return 0;
   }
 
-  if (currentRisk > toBeatRisk) {
-    return failedPath;
+  if (shortestPathByPosition[point.key]) {
+    return shortestPathByPosition[point.key];
   }
 
-  const validPaths = getValidPositions(
-    atRowI,
-    atColJ,
-    positions,
-    visitedPositions
-  );
+  const validPaths = getValidPositions(point, positions);
   if (!validPaths.length) {
     return failedPath;
   }
 
-  let currentBestRisk = toBeatRisk;
+  let currentBestRisk = failedPath;
   for (let k = 0; k < validPaths.length; k++) {
     const p = validPaths[k];
-    const nextRisk = currentRisk + positions[p.i][p.j];
-    if (nextRisk > currentBestRisk) {
-      continue;
-    }
-    const nextVisited = new Set(visitedPositions);
-    nextVisited.add(`${p.i}-${p.j}`);
-    const resultingRisk = traverseForRisk(
-      p.i,
-      p.j,
-      positions,
-      nextVisited,
-      nextRisk,
-      currentBestRisk
-    );
+    const resultingRisk = traverseForRisk(p, positions, shortestPathByPosition);
     if (resultingRisk < currentBestRisk) {
       currentBestRisk = resultingRisk;
     }
   }
-  return currentBestRisk;
+  const risk = currentBestRisk + positions[point.i][point.j];
+  shortestPathByPosition[point.key] = risk;
+  return risk;
 }
 
 function partOne(positions) {
-  const simpleRisk = getSimplePathRisk(positions);
+  const lastI = positions.length - 1;
+  const lastJ = positions[0].length - 1;
+  const lastKey = `${lastI}-${lastJ}`;
   const lowestRisk = traverseForRisk(
-    0,
-    0,
+    { i: lastI, j: lastJ, key: lastKey },
     positions,
-    new Set(["0-0"]),
-    0,
-    simpleRisk
+    {}
   );
   console.log(lowestRisk);
 }
